@@ -18,6 +18,16 @@ public class ShoppingDirectoryImpl implements ShoppingDirectory {
 	private static final int DAYS = 30;
 	private Map<String, Collection<Offer>> offers = new HashMap<>();
 
+	public List<Offer> addOffersToList(String productName) {
+		List<Offer> offersList = new LinkedList<>();
+		for (Offer offer : offers.get(productName.toLowerCase())) {
+			if (within30days(offer.getDate())) {
+				offersList.add(offer);
+			}
+		}
+		return offersList;
+	}
+
 	@Override
 	public Collection<Offer> findAllOffers(String productName) {
 		if (productName == null) {
@@ -26,12 +36,7 @@ public class ShoppingDirectoryImpl implements ShoppingDirectory {
 		if (!offers.containsKey(productName.toLowerCase())) {
 			throw new ProductNotFoundException("no product with that name");
 		}
-		List<Offer> offersList = new LinkedList<>();
-		for (Offer off : offers.get(productName.toLowerCase())) {
-			if (within30days(off.getDate())) {
-				offersList.add(off);
-			}
-		}
+		List<Offer> offersList = addOffersToList(productName);
 		offersList.sort(new Comparator<Offer>() {
 
 			@Override
@@ -42,14 +47,24 @@ public class ShoppingDirectoryImpl implements ShoppingDirectory {
 		return offersList;
 	}
 
-	@Override
-	public Offer findBestOffer(String productName) {
+	public void checkValidProductName(String productName) {
 		if (productName == null) {
 			throw new IllegalArgumentException();
 		}
 		if (!offers.containsKey(productName.toLowerCase())) {
 			throw new ProductNotFoundException("no product with that name");
 		}
+	}
+
+	public void checkIfOfferIsFound(Offer minOffer) {
+		if (minOffer == null) {
+			throw new NoOfferFoundException("no offer found");
+		}
+	}
+
+	@Override
+	public Offer findBestOffer(String productName) {
+		checkValidProductName(productName);
 		Collection<Offer> offs = offers.get(productName.toLowerCase());
 		Offer minOffer = null;
 		for (Offer off : offs) {
@@ -59,12 +74,7 @@ public class ShoppingDirectoryImpl implements ShoppingDirectory {
 				}
 			}
 		}
-
-		if (minOffer == null) {
-			throw new NoOfferFoundException("no offer found");
-		} else {
-			return minOffer;
-		}
+		return minOffer;
 	}
 
 	@Override
@@ -98,9 +108,9 @@ public class ShoppingDirectoryImpl implements ShoppingDirectory {
 			public int compare(PriceStatistic o1, PriceStatistic o2) {
 				return o2.getDate().compareTo(o1.getDate());
 			}
-			
+
 		});
-		
+
 		return stats;
 
 	}

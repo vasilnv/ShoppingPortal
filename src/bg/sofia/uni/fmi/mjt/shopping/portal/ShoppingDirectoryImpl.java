@@ -77,27 +77,25 @@ public class ShoppingDirectoryImpl implements ShoppingDirectory {
 		return minOffer;
 	}
 
-	@Override
-	public Collection<PriceStatistic> collectProductStatistics(String productName) {
-		if (productName == null) {
-			throw new IllegalArgumentException();
-		}
-		if (!offers.containsKey(productName.toLowerCase())) {
-			throw new ProductNotFoundException("product not found");
-		}
-
+	public Map<LocalDate, Collection<Offer>> splitOffersByDate(String productName) {
 		Map<LocalDate, Collection<Offer>> offersAtDate = new HashMap<>();
-		Collection<Offer> offs = offers.get(productName.toLowerCase());
+		Collection<Offer> m_offers = offers.get(productName.toLowerCase());
 		Collection<Offer> lst = new LinkedList<>();
 
-		for (Offer off : offs) {
-			if (!offersAtDate.containsKey(off.getDate())) {
-				offersAtDate.put(off.getDate(), new LinkedList<>());
+		for (Offer offer : m_offers) {
+			if (!offersAtDate.containsKey(offer.getDate())) {
+				offersAtDate.put(offer.getDate(), new LinkedList<>());
 			}
-			lst = offersAtDate.get(off.getDate());
-			lst.add(off);
+			lst = offersAtDate.get(offer.getDate());
+			lst.add(offer);
 		}
-
+		return offersAtDate;
+	}
+	
+	@Override
+	public Collection<PriceStatistic> collectProductStatistics(String productName) {
+		checkValidProductName(productName);
+		Map<LocalDate, Collection<Offer>> offersAtDate = splitOffersByDate(productName);
 		List<PriceStatistic> stats = new LinkedList<>();
 		for (Map.Entry<LocalDate, Collection<Offer>> entry : offersAtDate.entrySet()) {
 			stats.add(new PriceStatistic(entry.getValue()));
@@ -117,9 +115,7 @@ public class ShoppingDirectoryImpl implements ShoppingDirectory {
 
 	@Override
 	public void submitOffer(Offer offer) throws OfferAlreadySubmittedException {
-		if (offer == null) {
-			throw new IllegalArgumentException();
-		}
+		checkIfOfferIsFound(offer);
 		if (offers.containsKey(offer.getProductName().toLowerCase())) {
 			Collection<Offer> offs = offers.get(offer.getProductName().toLowerCase());
 			if (offs.contains(offer)) {
